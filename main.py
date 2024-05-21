@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+import sqlite3
 
 def opening():
     print("------------------------------------------")
@@ -73,6 +74,7 @@ def product_detail(soup):
     return product_infos
 
 
+
 if __name__ == "__main__":
     """
     1. acces url book.toscrape.com
@@ -89,9 +91,49 @@ if __name__ == "__main__":
     soup = get_soup(html)
     products = product_detail(soup)
     print(products)
-    
+    for index, product in enumerate(products):
+        print(index, product)
 
-    
+    # products = [{"title" : "Book 1",
+    #             "price" : 10.23,
+    #             "stock_availability" : 20,
+    #             "product_description" : "Describe of Book 1"},
+    #             {"title" : "Book 2",
+    #             "price" : 20.23,
+    #             "stock_availability" : 5,
+    #             "product_description" : "Describe of Book 2"},
+    #             {"title" : "Book 3",
+    #             "price" : 30.23,
+    #             "stock_availability" : 2,
+    #             "product_description" : "Describe of Book 3"
+    #             }]
+
+    def save_to_sqlite(data):
+        #membuat koneksi ke database(atau mebuat database jika belum ada)
+        conn = sqlite3.connect("products.db")
+        cursor = conn.cursor()
+
+        #membuat tabel jika belum ada
+        cursor.execute("""
+                      CREATE TABLE IF NOT EXISTS products (
+                      id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      title TEXT,
+                      price REAL,
+                      stock_availability INTEGER,
+                      product_description TExt)""")
+        
+        #memasukan data dari dictionary ke dalam tabel
+        for product in data:
+            cursor.execute('''INSERT INTO products (title, price, stock_availability, product_description)
+                          VALUES (?, ?, ?, ?)'''
+                           , (product["title"],product["price"], product["stock availability"], product["product description"]))
+        
+        #menyimpan perubahan dan menutup koneksi
+        conn.commit()
+        conn.close()
+
+    save_to_sqlite(products)
+
     
     
 

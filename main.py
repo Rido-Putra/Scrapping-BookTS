@@ -33,10 +33,15 @@ def regexpression(string):
     else: 
         return None
     
-#Scrape One Product
-def scrape_product(soup):
+# Scrape One Product
+def scrape_product(url):
+    html = get_request(url)
+    if html is None:
+        return None
+    
+    soup = get_soup(html)
     title = soup.find("h1").get_text()
-    price = soup.find("p").get_text()
+    price = soup.find("p", class_= "price_color").get_text()
     price_fix = float(price.replace("£", ""))
     stock_availability = regexpression(soup.find("p", class_ ="instock availability").get_text())
     description = soup.find("div", id ="content_inner").find_all("p")
@@ -50,9 +55,22 @@ def scrape_product(soup):
                "product description" : final_description }  
     return product
 
+#extract product info page 1 from soup
+def product_detail(soup):
+    products:list[BeautifulSoup] = soup.find_all("li", class_ ="col-xs-6 col-sm-4 col-md-3 col-lg-3")
+    urls = []
+    for index, i in enumerate(products):
+        relative_url = i.find("a")["href"]
+        full_url = f"https://books.toscrape.com/{relative_url}"
+        urls.append(full_url)
 
-
-
+    product_infos:list[BeautifulSoup] = []
+    for index, url in enumerate(urls):
+        product_info = scrape_product(url)
+        if product_info:
+            print(f"Scrape product {index+1}/{len(urls)}:{url}")
+            product_infos.append(product_info)
+    return product_infos
 
 
 if __name__ == "__main__":
@@ -65,10 +83,15 @@ if __name__ == "__main__":
     5. construct dictionary info one variable"""
 
     welcome = opening()
-    base_url = "https://books.toscrape.com/catalogue/sapiens-a-brief-history-of-humankind_996/index.html"
+    
+    base_url = "https://books.toscrape.com/index.html"
     html = get_request(base_url)
     soup = get_soup(html)
-    product1 = scrape_product(soup)
-    print(product1)
+    products = product_detail(soup)
+    print(products)
+    
+
+    
+    
     
 

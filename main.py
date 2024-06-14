@@ -15,7 +15,8 @@ def get_request(url):
     if request.status_code == 200:
         print("request succesful")
         html = request.content
-        return html
+        #soup = BeautifulSoup(html, "html.parser")
+        return html #soup
     else:
         print("request failed")
 
@@ -73,6 +74,57 @@ def product_detail(soup):
             product_infos.append(product_info)
     return product_infos
 
+def get_max_p(soup):
+    max_page : BeautifulSoup = soup.find("li", class_="current")
+    max_page : str = max_page.get_text()
+    max_page = max_page.strip()
+    #max_page = get_max_p_manual(max_page)
+    max_page = get_max_p_re(max_page)
+    return max_page
+
+def get_max_p_manual(max_page : str):
+    out = ""
+    for p in max_page:
+        if p.isnumeric():
+            out += p
+        elif not p.isnumeric():
+            out = ""    
+    return int(out)
+
+def get_max_p_re(max_page : str):
+    match = re.search(r'of (\d+)', max_page)
+    if match:
+        out = int(match.group(1))
+    return out  # Output: 150
+
+
+def get_all_urls(max_page : int):
+    product_urls = []
+    for p in range(1 , 2): #max_page+1
+        url = f"https://books.toscrape.com/catalogue/page-{p}.html"
+        print(f"Accessing {url}...")
+        html = get_request(url)
+        soup = get_soup(html)
+        products:list[BeautifulSoup] = soup.find_all("li", class_ ="col-xs-6 col-sm-4 col-md-3 col-lg-3")
+
+        for index, i in enumerate(products):
+            relative_url = i.find("a")["href"]
+            full_url = f"https://books.toscrape.com/catalogue/{relative_url}"
+            product_urls.append(full_url)
+    return product_urls
+
+
+def scrape_product_satuan(urls : list[str]):
+    output = []
+
+    for index, url in enumerate(urls):        
+        print(url)
+        product_info = scrape_product(url)
+        if product_info:
+            print(f"Scrape product {index+1}/{len(urls)}:{url}")
+            output.append(product_info)
+    return output
+
 
 
 if __name__ == "__main__":
@@ -89,8 +141,11 @@ if __name__ == "__main__":
     base_url = "https://books.toscrape.com/index.html"
     html = get_request(base_url)
     soup = get_soup(html)
-    products = product_detail(soup)
-    print(products)
+    max_p = get_max_p(soup)
+    urls = get_all_urls(max_p)
+    products = scrape_product_satuan(urls)
+    #products = product_detail(soup)
+    #print(products)
     for index, product in enumerate(products):
         print(index, product)
 

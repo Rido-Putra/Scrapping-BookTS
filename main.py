@@ -19,6 +19,7 @@ def get_request(url):
     if request.status_code == 200:
         print("request succesful")
         html = request.content
+        # soup = BeautifulSoup(html, "html.parser")
         return html
     else:
         print("request failed")
@@ -91,6 +92,13 @@ def product_detail(soup):
     return product_infos
 
 
+def get_max_page(soup):
+    max_page: BeautifulSoup = soup.find("li", class_="current")
+    max_page = str(max_page.get_text())
+    max_page = max_page.strip()
+    return max_page
+
+def get_max_page_manual(max_page: str): ,
 def save_to_sqlite(data):
     # membuat koneksi ke database(atau mebuat database jika belum ada)
     conn = sqlite3.connect("products.db")

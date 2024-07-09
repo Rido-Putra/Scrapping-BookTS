@@ -96,9 +96,66 @@ def get_max_page(soup):
     max_page: BeautifulSoup = soup.find("li", class_="current")
     max_page = str(max_page.get_text())
     max_page = max_page.strip()
-    return max_page
+    # max_page = get_max_page_manual(max_page)
+    max_page = get_max_p_re(max_page)
+    if max_page is not None:
+        return max_page
+    else:
+        return None
 
-def get_max_page_manual(max_page: str): ,
+
+def get_max_page_manual(max_page: str):
+    out = ""
+    for p in max_page:
+        if p.isnumeric():
+            out += p
+        elif not p.isnumeric():
+            out = ""
+    return int(out)
+
+
+def get_max_p_re(max_page: str):
+    pattern = r"Page \d+ of (\d+)"
+
+    match = re.search(pattern, max_page)
+
+    if match:
+        out = int(match.group(1))
+    else:
+        out = None
+    return out  # Output: 150
+
+
+def get_all_urls(max_page: int):
+    product_urls = []
+    for p in range(1, 2):  # max_page+1
+        url = f"https://books.toscrape.com/catalogue/page-{p}.html"
+        print(f"Accessing {url}...")
+        html = get_request(url)
+        soup = get_soup(html)
+        products: list[BeautifulSoup] = soup.find_all(
+            "li", class_="col-xs-6 col-sm-4 col-md-3 col-lg-3"
+        )
+
+        for index, i in enumerate(products):
+            relative_url = i.find("a")["href"]
+            full_url = f"https://books.toscrape.com/catalogue/{relative_url}"
+            product_urls.append(full_url)
+    return product_urls
+
+
+def scrape_product_satuan(urls: list[str]):
+    output = []
+
+    for index, url in enumerate(urls):
+        print(url)
+        product_info = scrape_product(url)
+        if product_info:
+            print(f"Scrape_product {index+1}/{len(urls)}")
+            output.append(product_info)
+    return output
+
+
 def save_to_sqlite(data):
     # membuat koneksi ke database(atau mebuat database jika belum ada)
     conn = sqlite3.connect("products.db")
@@ -145,31 +202,11 @@ if __name__ == "__main__":
     welcome = opening()
 
     base_url = "https://books.toscrape.com/"
-    url = "https://books.toscrape.com/catalogue/page-2.html"
-    # html = get_request(base_url)
-    # if html:
-    #     soup = get_soup(html)
-    # products = product_detail(soup)
-    # for index, product in enumerate(products):
-    #     print(index+1, product)
-    # save_to_sqlite(products)
+    html = get_request(base_url)
+    soup = get_soup(html)
+    max_p = get_max_page(soup)
 
-    # def scrape_multiple_pages(base_url, num_pages):
-    #     """Scrape multiple pages starting from the base URL."""
-    all_products = []
-    for page_num in range(1, 2):
-        url = f"{base_url}catalogue/page-{page_num}.html"
-        html = get_request(url)
-        if html:
-            soup = get_soup(html)
-            products = product_detail(soup)
-            # all_products.extend(products)
-        else:
-            break
-        # return all_products
-    # num_pages = 1
-    # products = scrape_multiple_pages(base_url, num_pages)
-    # # print(products)
-    # for index, product in enumerate(products):
-    #     print(index, product)
-    # all_product = []
+    urls = get_all_urls(max_p)
+    products = scrape_product_satuan(urls)
+    for index, product in enumerate(products):
+        print(index, product)
